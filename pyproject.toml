@@ -24,8 +24,8 @@ classifiers = [
 dependencies = ["aiohttp>=3.9"]
 
 [project.urls]
-Homepage = "https://github.com/miitchpls/hass-glutz-eaccess"
-Issues = "https://github.com/miitchpls/hass-glutz-eaccess/issues"
+Homepage = "https://github.com/miitchpls/pyglutz-eaccess"
+Issues = "https://github.com/miitchpls/pyglutz-eaccess/issues"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/pyglutz_eaccess"]
