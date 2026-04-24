@@ -142,6 +142,12 @@ class TestGlutzAPIMethods:
         with pytest.raises(GlutzConnectionError):
             await api.get_access_points()
 
+    async def test_get_access_points_raises_when_result_not_dict(self):
+        session = _mock_post_session(200, json_body={"result": ["unexpected"]})
+        api = GlutzAPI(session, "https://example.com", "user", "pass")
+        with pytest.raises(GlutzConnectionError):
+            await api.get_access_points()
+
     async def test_open_access_point_sends_action_2(self):
         session = _mock_post_session(200, json_body={"result": {"status": "success"}})
         api = GlutzAPI(session, "https://example.com", "user", "pass")
@@ -206,6 +212,12 @@ class TestGlutzAPIMethods:
         api = GlutzAPI(session, "https://example.com", "user", "pass")
         result = await api.get_system_info()
         assert result == {"name": "Palazzo Rossi"}
+
+    async def test_get_system_info_raises_when_result_not_dict(self):
+        session = _mock_post_session(200, json_body={"result": "unexpected"})
+        api = GlutzAPI(session, "https://example.com", "user", "pass")
+        with pytest.raises(GlutzConnectionError):
+            await api.get_system_info()
 
 
 class TestParseInvitation:
