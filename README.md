@@ -25,7 +25,7 @@ async def main():
 
 ## Exported API
 
-- `GlutzAPI` — JSON-RPC client (`get_access_points`, `get_system_info`, `open_access_point`, `close_access_point`).
+- `GlutzAPI` — JSON-RPC client (`get_access_points`, `get_system_info`, `open_access_point`,`hold_open_access_point`, `close_access_point`).
 - `GlutzAuthError`, `GlutzConnectionError` — error types.
 - `parse_invitation(url)` — parse web/mobile invitation URLs.
 - `resolve_instance_host(session, cloud_host, system_path)` — follow the cloud redirect to find the instance host.

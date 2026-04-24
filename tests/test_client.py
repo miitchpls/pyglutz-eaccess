@@ -156,6 +156,20 @@ class TestGlutzAPIMethods:
         result = await api.open_access_point("ap-1")
         assert result is False
 
+    async def test_hold_open_access_point_sends_action_1(self):
+        session = _mock_post_session(200, json_body={"result": {"status": "success"}})
+        api = GlutzAPI(session, "https://example.com", "user", "pass")
+        result = await api.hold_open_access_point("ap-1")
+        assert result is True
+        payload = session.post.call_args[1]["json"]
+        assert payload["params"] == ["ap-1", 1]
+
+    async def test_hold_open_access_point_returns_false_on_non_success(self):
+        session = _mock_post_session(200, json_body={"result": {"status": "error"}})
+        api = GlutzAPI(session, "https://example.com", "user", "pass")
+        result = await api.hold_open_access_point("ap-1")
+        assert result is False
+
     async def test_close_access_point_sends_action_16(self):
         session = _mock_post_session(200, json_body={"result": {"status": "success"}})
         api = GlutzAPI(session, "https://example.com", "user", "pass")

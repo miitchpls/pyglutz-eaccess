@@ -85,7 +85,7 @@ async def resolve_instance_host(
         async with session.get(
             url,
             allow_redirects=False,
-            timeout=aiohttp.ClientTimeout(total=10),
+            timeout=RPC_TIMEOUT,
         ) as resp:
             if resp.status in (301, 302, 307, 308):
                 resolved = urlparse(resp.headers.get("Location", "")).hostname
@@ -105,7 +105,7 @@ async def set_new_password(
         async with session.post(
             url,
             json={"token": token, "password": password},
-            timeout=aiohttp.ClientTimeout(total=10),
+            timeout=RPC_TIMEOUT,
         ) as resp:
             if resp.status == 401:
                 raise GlutzAuthError("Invalid or expired invitation token")
@@ -197,22 +197,23 @@ class GlutzAPI:
             info["name"] = name
         return info
 
-    async def open_access_point(self, access_point_id: str) -> bool:
-        """Open an access point for 3 seconds (action 2, hardware auto-relock)."""
+    async def _execute_access_point(self, access_point_id: str, action: int) -> bool:
         result = await self._rpc(
             "eAccess.executeAccessPointAsLoggedInUser",
-            [access_point_id, 2],
+            [access_point_id, action],
         )
-        status = result.get("status") if isinstance(result, dict) else None
-        _LOGGER.debug("open_access_point(%s) -> %s", access_point_id, status)
+        status = result.get("status")
+        _LOGGER.debug("execute_access_point(%s, %d) -> %s", access_point_id, action, status)
         return status == "success"
+
+    async def open_access_point(self, access_point_id: str) -> bool:
+        """Open an access point for 3 seconds (action 2, hardware auto-relock)."""
+        return await self._execute_access_point(access_point_id, 2)
+
+    async def hold_open_access_point(self, access_point_id: str) -> bool:
+        """Hold an access point open indefinitely using action 1."""
+        return await self._execute_access_point(access_point_id, 1)
 
     async def close_access_point(self, access_point_id: str) -> bool:
         """Force-lock an access point using action 16."""
-        result = await self._rpc(
-            "eAccess.executeAccessPointAsLoggedInUser",
-            [access_point_id, 16],
-        )
-        status = result.get("status") if isinstance(result, dict) else None
-        _LOGGER.debug("close_access_point(%s) -> %s", access_point_id, status)
-        return status == "success"
+        return await self._execute_access_point(access_point_id, 16)
