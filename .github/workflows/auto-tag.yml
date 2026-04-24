@@ -1,0 +1,27 @@
+name: Auto-tag on version change                                                                                                                                              
+                                                                                                                                                                                  
+on:
+  push:                                                                                                                                                                         
+    branches:
+      - main                                                                                                                                                                    
+    paths:                                                                     
+      - "pyproject.toml"               
+
+jobs:
+  tag:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read version
+        id: version
+        run: |
+          VERSION=$(grep '^version' pyproject.toml | head -1 | sed 's/.*"\(.*\)"/\1/')
+          echo "value=v$VERSION" >> $GITHUB_OUTPUT
+          
+      - name: Create and push tag
+        run: |
+          git tag ${{ steps.version.outputs.value }} || echo "Tag already exists, skipping"
+          git push origin ${{ steps.version.outputs.value }} || echo "Tag already pushed, skipping"
