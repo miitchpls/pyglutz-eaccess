@@ -91,7 +91,7 @@ async def resolve_instance_host(
                 resolved = urlparse(resp.headers.get("Location", "")).hostname
                 if isinstance(resolved, str) and resolved:
                     return resolved
-    except aiohttp.ClientError as err:
+    except (TimeoutError, aiohttp.ClientError) as err:
         raise GlutzConnectionError(f"Could not resolve instance host from {url}: {err}") from err
 
     return cloud_host
@@ -110,7 +110,7 @@ async def set_new_password(
             if resp.status == 401:
                 raise GlutzAuthError("Invalid or expired invitation token")
             resp.raise_for_status()
-    except aiohttp.ClientError as err:
+    except (TimeoutError, aiohttp.ClientError) as err:
         raise GlutzConnectionError(f"Could not set new password at {url}: {err}") from err
 
 
@@ -157,12 +157,15 @@ class GlutzAPI:
                     raise GlutzAuthError("Invalid credentials")
                 resp.raise_for_status()
                 data: dict[str, Any] = await resp.json()
+                if not isinstance(data, dict):
+                    raise GlutzConnectionError(f"{method}: unexpected response type")
                 if "error" in data:
                     _raise_rpc_error(method, data["error"])
                 if "result" not in data:
                     raise GlutzConnectionError(f"{method}: missing 'result' in response")
                 return cast(dict[str, Any], data["result"])
-        except aiohttp.ClientError as err:
+        except (TimeoutError, aiohttp.ClientError, ValueError) as err:
+            # ValueError covers json.JSONDecodeError on malformed bodies.
             raise GlutzConnectionError(str(err)) from err
 
     async def get_access_points(self) -> list[dict[str, Any]]:
@@ -202,6 +205,10 @@ class GlutzAPI:
             "eAccess.executeAccessPointAsLoggedInUser",
             [access_point_id, action],
         )
+        if not isinstance(result, dict):
+            raise GlutzConnectionError(
+                "Unexpected executeAccessPointAsLoggedInUser response"
+            )
         status = result.get("status")
         _LOGGER.debug("execute_access_point(%s, %d) -> %s", access_point_id, action, status)
         return status == "success"

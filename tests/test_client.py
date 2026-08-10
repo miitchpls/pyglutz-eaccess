@@ -98,6 +98,26 @@ class TestGlutzAPIRpc:
         with pytest.raises(GlutzConnectionError):
             await api._rpc("some.method", [])
 
+    async def test_timeout_raises_connection_error(self):
+        session = _mock_post_session(200, client_error=TimeoutError())
+        api = GlutzAPI(session, "https://example.com", "user", "pass")
+        with pytest.raises(GlutzConnectionError):
+            await api._rpc("some.method", [])
+
+    async def test_malformed_json_raises_connection_error(self):
+        session = _mock_post_session(200)
+        session.post.return_value.json = AsyncMock(side_effect=ValueError("bad json"))
+        api = GlutzAPI(session, "https://example.com", "user", "pass")
+        with pytest.raises(GlutzConnectionError):
+            await api._rpc("some.method", [])
+
+    async def test_non_dict_response_raises_connection_error(self):
+        session = _mock_post_session(200)
+        session.post.return_value.json = AsyncMock(return_value=[1, 2])
+        api = GlutzAPI(session, "https://example.com", "user", "pass")
+        with pytest.raises(GlutzConnectionError):
+            await api._rpc("some.method", [])
+
     async def test_missing_result_raises_connection_error(self):
         session = _mock_post_session(200, json_body={})
         api = GlutzAPI(session, "https://example.com", "user", "pass")
@@ -155,6 +175,12 @@ class TestGlutzAPIMethods:
         assert result is True
         payload = session.post.call_args[1]["json"]
         assert payload["params"] == ["ap-1", 2]
+
+    async def test_execute_raises_when_result_not_dict(self):
+        session = _mock_post_session(200, json_body={"jsonrpc": "2.0", "result": "nope"})
+        api = GlutzAPI(session, "https://example.com", "user", "pass")
+        with pytest.raises(GlutzConnectionError):
+            await api.open_access_point("ap-1")
 
     async def test_open_access_point_returns_false_on_non_success(self):
         session = _mock_post_session(200, json_body={"result": {"status": "error"}})
@@ -289,6 +315,11 @@ class TestResolveInstanceHost:
         with pytest.raises(GlutzConnectionError):
             await resolve_instance_host(session, "cloud.example.com", "building")
 
+    async def test_timeout_raises_connection_error(self):
+        session = _mock_get_session(200, client_error=TimeoutError())
+        with pytest.raises(GlutzConnectionError):
+            await resolve_instance_host(session, "cloud.example.com", "building")
+
 
 class TestSetNewPassword:
     async def test_success_returns_none(self):
@@ -316,6 +347,11 @@ class TestSetNewPassword:
 
     async def test_network_error_raises_connection_error(self):
         session = _mock_post_session(200, client_error=aiohttp.ClientConnectorError(MagicMock(), OSError()))
+        with pytest.raises(GlutzConnectionError):
+            await set_new_password(session, "host.example.com", "tok", "Secret1!")
+
+    async def test_timeout_raises_connection_error(self):
+        session = _mock_post_session(200, client_error=TimeoutError())
         with pytest.raises(GlutzConnectionError):
             await set_new_password(session, "host.example.com", "tok", "Secret1!")
 

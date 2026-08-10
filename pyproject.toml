@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "pyglutz-eaccess"
-version = "0.2.2"
+version = "0.2.3"
 description = "Async client for the Glutz eAccess JSON-RPC API."
 readme = "README.md"
 license = { file = "LICENSE" }
